@@ -5,7 +5,7 @@ from collections import defaultdict
 
 # training parameters
 runs = 100
-max_trials = 1000
+max_trials = 10000
 value_plot_step_size = 2000  # output value function once in N trials
 
 # Mcar 2d = [pos,vel, action]
@@ -57,8 +57,8 @@ def random_vel():
 
 
 def resetQ():
-    for l1 in range(0, grid_res):
-        for l2 in range(0, grid_res):
+    for l1 in range(0, grid_res + 2):
+        for l2 in range(0, grid_res + 2):
             for l3 in range(0, actions):
                 QL[(l1, l2, l3)] = random.uniform(0, 1)
     print "Tabela Resetada"
@@ -101,7 +101,7 @@ def update_position_velocity(a):
         newp = pos_range[0]
         newv = 0  # reduce velocity to 0 if position was out of bounds
 
-    if newv > pos_range[1]:
+    if newp > pos_range[1]:
         newp = pos_range[1]
         newv = 0
 
@@ -114,9 +114,10 @@ def update_position_velocity(a):
 def qvalue(pos, vel, a):
     pos_in_grid = int(((pos - pos_range[0]) / (pos_range[1] - pos_range[0])) * grid_res)
     vel_in_grid = int(((vel - vel_range[0]) / (vel_range[1] - vel_range[0])) * grid_res)
-    #print pos_in_grid, vel_in_grid
+    # print pos_in_grid, vel_in_grid
     qv = QL[(pos_in_grid, vel_in_grid, a)]
     return qv
+
 
 # given a position and velocity bin, pick the highest Q-value action with high probability
 def choose_action(pos, vel):
@@ -144,7 +145,7 @@ def best_qvalue(pos, vel):
 def QLupdate(reward, act, oldp, oldv, newp, newv):
     pos_in_grid = int(((oldp - pos_range[0]) / (pos_range[1] - pos_range[0])) * grid_res)
     vel_in_grid = int(((oldv - vel_range[0]) / (vel_range[1] - vel_range[0])) * grid_res)
-    #print pos_in_grid,vel_in_grid
+    # print pos_in_grid,vel_in_grid
     best_new_qval = best_qvalue(newp, newv)
     QL[(pos_in_grid, vel_in_grid, act)] = (1 - beta) * QL[(pos_in_grid, vel_in_grid, act)] + (beta) * (
         reward + gamma * best_new_qval)  # Q-Learning update rule
@@ -163,21 +164,28 @@ def record_evolution(run, trial, steps):
 
 
 def write_evol_data():
-    print "Print evolution "
-    file = open("evolution.txt", "a")
-    desvio_quad=0
+    print "Start to Print evolution "
+    file = open("evolution.txt", "w")
+
     for trial in range(0, max_trials):
+        desvio_quad = 0
+        sum = 0
+
         for run in range(0, runs):
-            sum +=evol_data[(runs,trial)]
-            average = sum/ runs
+            sum += evol_data[(run, trial)]
+
+        average = sum / runs
+
         for run in range(0, runs):
-            desvio_quad += pow((evol_data[runs][trial] - average), 2)
-            desvio_quad = desvio_quad / runs
-        file.write(trial)
+            desvio_quad += pow((evol_data[(run, trial)] - average), 2)
+
+        desvio_quad = desvio_quad / runs
+
+        file.write(str(trial))
         file.write(' ')
-        file.write(average)
+        file.write(str(average))
         file.write(' ')
-        file.write(desvio_quad)
+        file.write(str(desvio_quad))
         file.write('\n')
     file.close()
 
@@ -209,14 +217,13 @@ def run_trials():
                 mygoal = reached_goal(simulatep)
                 if mygoal:
                     record_evolution(run, trial, iterations)
+                    iterations=0
                     break
                 else:
                     print trial, run, simulatev, simulatep, r, action
 
     print " Finish ! "
     write_evol_data()
-
-
 
 
 run_trials()
