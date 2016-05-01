@@ -4,8 +4,8 @@ from math import *
 from collections import defaultdict
 
 # training parameters
-runs = 1
-max_trials = 10000
+runs = 100
+max_trials = 1000
 value_plot_step_size = 2000  # output value function once in N trials
 
 # Mcar 2d = [pos,vel, action]
@@ -13,7 +13,7 @@ value_plot_step_size = 2000  # output value function once in N trials
 gravity = -0.0025  # // acceleration due to gravity
 grid_res = 100
 # car position is limited to the following range
-pos_range = [-1.2, 0.6]
+pos_range = [-1.2, 0.60]
 # car velocity is limited to the following range
 vel_range = [-0.07, 0.07]
 
@@ -24,7 +24,7 @@ simulatev = 0
 simulatep = 0
 
 # QL parameters
-max_trials = 10000
+
 goal = 0.5  # above this value means goal reached
 epsilon = 0.1
 alpha = 0.2
@@ -35,6 +35,7 @@ exploration_rate = 0.1  # percentage of randomness
 beta = 0.1  # learning rate
 
 QL = {}
+evol_data = {}
 
 
 ##### Car  Basic Functions #####
@@ -56,8 +57,8 @@ def random_vel():
 
 
 def resetQ():
-    for l1 in range(0, grid_res + 1):
-        for l2 in range(0, grid_res + 1):
+    for l1 in range(0, grid_res):
+        for l2 in range(0, grid_res):
             for l3 in range(0, actions):
                 QL[(l1, l2, l3)] = random.uniform(0, 1)
     print "Tabela Resetada"
@@ -71,24 +72,14 @@ def rewards(pcar):
     return localreward
 
 
-# goal ?
-def reached_goal(pos):
-    if pos > goal:
-        return True
-    else:
-        return False
-
-
 def update_position_velocity(a):
     # action 0,1,2,3 0 backward 1 forward 2 coast
     global simulatev
     global simulatep
+    global newv
+    global newp
     oldv = simulatev  # preserve old values
     oldp = simulatep
-    #newv = 0
-    #newp = 0  # new values of velocity and position
-
-    #aval = 0
 
     if a == 0:  # backward
         aval = -1
@@ -98,18 +89,23 @@ def update_position_velocity(a):
     newv = oldv + (0.001 * aval) + (gravity * cos(3 * oldp))  # update equation for velocity
 
     newp = simulatep + newv  # update equation for position
+    print newp, newv
 
-    if newv <= vel_range[0]:  # clip velocity if necessary to keep it within range
+    if newv < vel_range[0]:  # clip velocity if necessary to keep it within range
         newv = vel_range[0]
-    elif newv >= vel_range[1]:
+
+    if newv > vel_range[1]:
         newv = vel_range[1]
-    if newp <= pos_range[0]:  # clip position and velocity if necessary to keep it within range
+
+    if newp < pos_range[0]:  # clip position and velocity if necessary to keep it within range
         newp = pos_range[0]
         newv = 0  # reduce velocity to 0 if position was out of bounds
-    elif newv >= pos_range[1]:
+
+    if newv > pos_range[1]:
         newp = pos_range[1]
         newv = 0
 
+    print newp, newv
     simulatep = newp
     simulatev = newv  # update state to new values
 
@@ -118,6 +114,7 @@ def update_position_velocity(a):
 def qvalue(pos, vel, a):
     pos_in_grid = int(((pos - pos_range[0]) / (pos_range[1] - pos_range[0])) * grid_res)
     vel_in_grid = int(((vel - vel_range[0]) / (vel_range[1] - vel_range[0])) * grid_res)
+    #print pos_in_grid, vel_in_grid
     qv = QL[(pos_in_grid, vel_in_grid, a)]
     return qv
 
@@ -147,10 +144,42 @@ def best_qvalue(pos, vel):
 def QLupdate(reward, act, oldp, oldv, newp, newv):
     pos_in_grid = int(((oldp - pos_range[0]) / (pos_range[1] - pos_range[0])) * grid_res)
     vel_in_grid = int(((oldv - vel_range[0]) / (vel_range[1] - vel_range[0])) * grid_res)
-
+    #print pos_in_grid,vel_in_grid
     best_new_qval = best_qvalue(newp, newv)
     QL[(pos_in_grid, vel_in_grid, act)] = (1 - beta) * QL[(pos_in_grid, vel_in_grid, act)] + (beta) * (
-    reward + gamma * best_new_qval)  # Q-Learning update rule
+        reward + gamma * best_new_qval)  # Q-Learning update rule
+
+
+# goal ?
+def reached_goal(pos):
+    if pos > goal:
+        return True
+    else:
+        return False
+
+
+def record_evolution(run, trial, steps):
+    evol_data[(run, trial)] = steps
+
+
+def write_evol_data():
+    print "Print evolution "
+    file = open("evolution.txt", "a")
+    desvio_quad=0
+    for trial in range(0, max_trials):
+        for run in range(0, runs):
+            sum +=evol_data[(runs,trial)]
+            average = sum/ runs
+        for run in range(0, runs):
+            desvio_quad += pow((evol_data[runs][trial] - average), 2)
+            desvio_quad = desvio_quad / runs
+        file.write(trial)
+        file.write(' ')
+        file.write(average)
+        file.write(' ')
+        file.write(desvio_quad)
+        file.write('\n')
+    file.close()
 
 
 def run_trials():
@@ -177,14 +206,21 @@ def run_trials():
                 r = rewards(simulatep)
                 QLupdate(r, action, OLDsimulatep, OLDsimulatev, simulatep, simulatev)
                 iterations += 1
-        if mygoal:
-            break
-        else:
-            print simulatev, simulatep
+                mygoal = reached_goal(simulatep)
+                if mygoal:
+                    record_evolution(run, trial, iterations)
+                    break
+                else:
+                    print trial, run, simulatev, simulatep, r, action
+
+    print " Finish ! "
+    write_evol_data()
+
+
 
 
 run_trials()
-
+print " Finish ALL ! "
 
 # print random_pos()
 # print random_vel()
