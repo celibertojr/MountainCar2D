@@ -1,0 +1,8 @@
+set size 1, 0.5
+set encoding iso_8859_1
+set xlabel "Episodes"
+set ylabel "Steps"
+set term postscript portrait
+set term postscript color
+set output "comparacao.eps"
+plot [0:5000] [0:1800] "evolution.txt" title "Q" with lines lt 1 lw 2
