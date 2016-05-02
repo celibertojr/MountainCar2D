@@ -1,7 +1,10 @@
 import random
 import sys
+import StringIO
 from math import *
 from collections import defaultdict
+
+buf = StringIO.StringIO()
 
 # training parameters
 runs = 100
@@ -53,8 +56,6 @@ def random_vel():
 
 
 #### QL  functions ############################
-
-
 
 def resetQ():
     for l1 in range(0, grid_res + 2):
@@ -163,8 +164,11 @@ def record_evolution(run, trial, steps):
     evol_data[(run, trial)] = steps
 
 
+
+
+
+
 def write_evol_data():
-    print "Start to Print evolution "
     file = open("evolution.txt", "w")
 
     for trial in range(0, max_trials):
@@ -189,6 +193,23 @@ def write_evol_data():
         file.write('\n')
     file.close()
 
+
+def generate_vvalue_plot(l):
+
+    file = open("v-table.txt", "w")
+
+    for pos in range(0, grid_res):
+        pvalue = pos_range[0] + pos_step * pos
+        for vel in range(0, grid_res):
+            vvalue = vel_range[0] + vel_step * vel
+            value = best_qvalue(pvalue, vvalue)
+            if (value < 0):
+                value = -value
+
+            file.write(str(value))
+            file.write('"\t"')
+
+        file.close()
 
 def run_trials():
     for run in range(0, runs):
