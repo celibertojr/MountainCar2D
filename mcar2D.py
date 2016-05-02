@@ -89,7 +89,7 @@ def update_position_velocity(a):
     newv = oldv + (0.001 * aval) + (gravity * cos(3 * oldp))  # update equation for velocity
 
     newp = simulatep + newv  # update equation for position
-    print newp, newv
+    #print newp, newv
 
     if newv < vel_range[0]:  # clip velocity if necessary to keep it within range
         newv = vel_range[0]
@@ -105,7 +105,7 @@ def update_position_velocity(a):
         newp = pos_range[1]
         newv = 0
 
-    print newp, newv
+    #print newp, newv
     simulatep = newp
     simulatev = newv  # update state to new values
 
@@ -154,9 +154,9 @@ def QLupdate(reward, act, oldp, oldv, newp, newv):
 # goal ?
 def reached_goal(pos):
     if pos > goal:
-        return True
+        return 1
     else:
-        return False
+        return 0
 
 
 def record_evolution(run, trial, steps):
@@ -196,16 +196,17 @@ def run_trials():
         global simulatep
         global simulatev
         resetQ()  # reset Q table
-        iterations = 0
-        r = 0
         carV = 0
-        randP = random.uniform(0, 1)
-        initP = (pos_range[1] - pos_range[0]) * randP + pos_range[0]  # scale position into legal range
-        simulatep = initP
-        simulatev = carV
-        mygoal = False
+
+
 
         for trial in range(0, max_trials):
+            iterations = 0
+            randP = random.uniform(0, 1)
+            initP = (pos_range[1] - pos_range[0]) * randP + pos_range[0]  # scale position into legal range
+            simulatep = initP
+            simulatev = carV
+
             while True:
                 OLDsimulatep = simulatep
                 OLDsimulatev = simulatev
@@ -215,18 +216,21 @@ def run_trials():
                 QLupdate(r, action, OLDsimulatep, OLDsimulatev, simulatep, simulatev)
                 iterations += 1
                 mygoal = reached_goal(simulatep)
-                if mygoal:
+                if mygoal == 1:
                     record_evolution(run, trial, iterations)
-                    iterations=0
+                    print trial, run, simulatev, simulatep, r, action
                     break
                 else:
                     print trial, run, simulatev, simulatep, r, action
 
-    print " Finish ! "
-    write_evol_data()
+
+
+print " Finish ! "
+
 
 
 run_trials()
+write_evol_data()
 print " Finish ALL ! "
 
 # print random_pos()
