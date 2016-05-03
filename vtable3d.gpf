@@ -1,0 +1,14 @@
+set size 1, 0.5
+set locale "pt_BR"
+set encoding iso_8859_1
+set xlabel "Posição"
+set ylabel "Velocidade"
+set zlabel "Função Valor" 
+set term postscript portrait
+set output "vtable-mcar.eps"
+set view 65, 110
+set hidden3d
+set ytics 25
+set xtics 14
+splot [0:100] [0:100] "vtable-mcar.txt" matrix every 2:2 notitle with lines lt 0
+
