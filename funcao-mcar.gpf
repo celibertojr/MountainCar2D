@@ -1,9 +1,0 @@
-set size 1, 0.5
-set locale "pt_BR"
-set encoding iso_8859_1
-set xlabel "Posição"
-set term postscript portrait
-set term postscript color
-set output "funcao-mcar.eps"
-set noytics
-plot [x = -1.2:0.5] [-0.08:0.08]  sin(3*x)*0.07 notitle lw 2 
