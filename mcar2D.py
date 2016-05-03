@@ -14,8 +14,8 @@ buf = StringIO.StringIO()
 heuristic = False
 
 # training parameters
-runs = 30
-max_trials = 5000
+runs = 2
+max_trials = 100
 value_plot_step_size = 2000  # output value function once in N trials
 
 # Mcar 2d = [pos,vel, action]
@@ -236,18 +236,18 @@ def generate_vvalue_plot():
 
     file = open("v-table.txt", "w")
 
-    for pos in range(0, grid_res):
+    for pos in range(0, grid_res-1):
         pvalue = pos_range[0] + pos_step * pos
-        for vel in range(0, grid_res):
+        for vel in range(0, grid_res-1):
             vvalue = vel_range[0] + vel_step * vel
             value = best_qvalue(pvalue, vvalue)
             if (value < 0):
-                value = -value
+                value = value*(-1)
 
             file.write(str(value))
-            file.write('"\t"')
+            file.write("\t")
 
-        file.close()
+    file.close()
 
 ##############################################################
 
