@@ -1,10 +1,17 @@
+# Q-learning for mountain car problem by Luiz Celiberto
+#celibertojr@gmail.com
+# follows approach described in Sutton/Singh papers
+# based in the C version of Sridhar Mahadevan in 1996
+
+
 import random
-import sys
 import StringIO
 from math import *
-from collections import defaultdict
 
 buf = StringIO.StringIO()
+
+#HQL - heuristic ?
+heuristic = False
 
 # training parameters
 runs = 100
@@ -19,7 +26,7 @@ grid_res = 100
 pos_range = [-1.2, 0.60]
 # car velocity is limited to the following range
 vel_range = [-0.07, 0.07]
-
+goal = 0.5  # above this value means goal reached
 pos_step = (pos_range[1] - pos_range[0]) / grid_res
 vel_step = (vel_range[1] - vel_range[0]) / grid_res
 
@@ -27,8 +34,6 @@ simulatev = 0
 simulatep = 0
 
 # QL parameters
-
-goal = 0.5  # above this value means goal reached
 epsilon = 0.1
 alpha = 0.2
 gamma = 0.9
@@ -40,10 +45,14 @@ beta = 0.1  # learning rate
 QL = {}
 evol_data = {}
 
+#H parameters
+H = {}
+mi = 1 # heuristically ponderation
+deltaH = 10 # value of H
+
 
 ##### Car  Basic Functions #####
 # generate random starting position
-
 def random_pos():
     prand = random.uniform(0, 2)
     return pos_range[1] - pos_range[0] * prand + pos_range[0]  # scale position into legal range
@@ -53,6 +62,37 @@ def random_pos():
 def random_vel():
     vrand = random.uniform(0, 2)
     return vel_range[1] - vel_range[0] * vrand + vel_range[0]  # scale velocity into legal range
+
+############# HQL functions ############################
+
+def accelerate():
+    posH=pos_range[0]
+    velH=vel_range[0]
+    for p1 in range(posH, (pos_range[1]-pos_range[0])/grid_res):
+        for v1 in range(velH, (vel_range[1] - vel_range[0]) / grid_res):
+            if (v1<0):
+                H[(p1,v1,2)] = deltaH
+            else:
+                H[(p1, v1, 1)] = deltaH
+
+def resetH():
+    for l1 in range(0, grid_res + 2):
+        for l2 in range(0, grid_res + 2):
+            for l3 in range(0, actions):
+                H[(l1, l2, l3)] = 0
+
+
+# given a position and velocity bin, pick the highest Q+H-value action with high probability
+def choose_action_h(pos, vel):
+    bact = random.randint(0, 2)
+    rvalue = random.uniform(0, 1)
+    if rvalue < exploration_rate:  # do a random action
+        return random.randint(0, 2)
+    else:
+        for a in range(0, actions):
+            if qvalue(pos, vel, a) + mi*H[(pos, vel, a)] > qvalue(pos, vel, bact)+mi*H[(pos, vel, a)]:
+                bact = a
+        return bact
 
 
 #### QL  functions ############################
@@ -164,9 +204,7 @@ def record_evolution(run, trial, steps):
     evol_data[(run, trial)] = steps
 
 
-
-
-
+############### FILE ###########################################
 
 def write_evol_data():
     file = open("evolution.txt", "w")
@@ -211,6 +249,9 @@ def generate_vvalue_plot(l):
 
         file.close()
 
+##############################################################
+
+
 def run_trials():
     for run in range(0, runs):
         # contRUN +=1
@@ -218,6 +259,9 @@ def run_trials():
         global simulatev
         resetQ()  # reset Q table
         carV = 0
+        if heuristic:
+            resetH()
+            accelerate()
 
 
 
@@ -231,7 +275,12 @@ def run_trials():
             while True:
                 OLDsimulatep = simulatep
                 OLDsimulatev = simulatev
-                action = choose_action(simulatep, simulatev)
+
+                if heuristic: # H value to accelerate
+                    action = choose_action_h(simulatep, simulatev)
+                else:
+                    action = choose_action(simulatep, simulatev)
+
                 update_position_velocity(action)  # move the car
                 r = rewards(simulatep)
                 QLupdate(r, action, OLDsimulatep, OLDsimulatev, simulatep, simulatev)
@@ -246,9 +295,7 @@ def run_trials():
 
 
 
-print " Finish ! "
-
-
+#### EXECUTE PROGRAM ###############################
 
 run_trials()
 write_evol_data()
