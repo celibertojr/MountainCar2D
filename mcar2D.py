@@ -14,8 +14,8 @@ buf = StringIO.StringIO()
 heuristic = False
 
 # training parameters
-runs = 100
-max_trials = 10000
+runs = 30
+max_trials = 5000
 value_plot_step_size = 2000  # output value function once in N trials
 
 # Mcar 2d = [pos,vel, action]
@@ -232,7 +232,7 @@ def write_evol_data():
     file.close()
 
 
-def generate_vvalue_plot(l):
+def generate_vvalue_plot():
 
     file = open("v-table.txt", "w")
 
@@ -299,6 +299,7 @@ def run_trials():
 
 run_trials()
 write_evol_data()
+generate_vvalue_plot()
 print " Finish ALL ! "
 
 # print random_pos()
