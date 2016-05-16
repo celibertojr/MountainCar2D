@@ -3,7 +3,7 @@ set locale "pt_BR"
 set encoding iso_8859_1
 set xlabel "posicao"
 set ylabel "Velocidade"
-set zlabel "função valor" 
+set zlabel "funcao valor" 
 set term postscript portrait
 set output "v-table.eps"
 set view 65, 110
@@ -11,4 +11,3 @@ set hidden3d
 set ytics 25
 set xtics 14
 splot [0:100] [0:100] "v-table.txt" matrix every 2:2 notitle with lines lt 0
-
