@@ -11,15 +11,11 @@ from math import *
 buf = StringIO.StringIO()
 
 
-
-
-
-
-
-
 class Learning(object):
     def __init__(self):
     # QL parameters
+        self.positivereward = 100 # the value of positive reward.
+        self.negativereward = 0 #the value of negative reward.
         self.epsilon = 0.1
         self.alpha = 0.2
         self.gamma = 0.9
@@ -27,7 +23,7 @@ class Learning(object):
         self.reward = -1
         self.exploration_rate = 0.1  # percentage of randomness
         self.beta = 0.1  # learning rate
-        self.heuristic = False #HQL - heuristic ?
+        self.heuristic = True #HQL - heuristic ?
 
         # training parameters
 
@@ -75,16 +71,24 @@ class Learning(object):
     def accelerate(self):
         posH = self.pos_range[0]
         velH = self.vel_range[0]
-        for p1 in range(posH, (self.pos_range[1] - self.pos_range[0]) / self.grid_res):
-            for v1 in range(velH, (self.vel_range[1] - self.vel_range[0]) / self.grid_res):
-                if (v1 < 0):
-                    self.H[(p1, v1, 2)] = self.deltaH
-                else:
-                    self.H[(p1, v1, 1)] = self.deltaH
+        valuepos=int((self.pos_range[1] - self.pos_range[0]) / self.grid_res)
+        valuevel=int((self.vel_range[1] - self.vel_range[0]) / self.grid_res)
+        
+        for l1 in range(0, self.grid_res):
+            for l2 in range(0, self.grid_res):
+                for l3 in range(0, self.actions):
+                    self.H[(l1, l2, l3)] = 0
+        
+        #for p1 in range(posH, valuepos):
+        #    for v1 in range(velH, valuevel):
+        #        if (v1 < 0):
+        #            self.H[(p1, v1, 2)] = self.deltaH
+        #        else:
+        #            self.H[(p1, v1, 1)] = self.deltaH
 
     def resetH(self):
-        for l1 in range(0, self.grid_res + 2):
-            for l2 in range(0, self.grid_res + 2):
+        for l1 in range(0, self.grid_res):
+            for l2 in range(0, self.grid_res):
                 for l3 in range(0, self.actions):
                     self.H[(l1, l2, l3)] = 0
 
@@ -120,9 +124,9 @@ class Learning(object):
 
     # / see if car is up the hill
     def rewards(self,pcar):
-        localreward = 0
+        localreward = self.negativereward
         if pcar > self.goal:
-            localreward = 100
+            localreward = self.positivereward
         return localreward
 
 
@@ -139,7 +143,7 @@ class Learning(object):
         newv = oldv + (0.001 * aval) + (self.gravity * cos(3 * oldp))  # update equation for velocity
 
         newp = self.simulatep + newv  # update equation for position
-    #print newp, newv
+        #print newp, newv #debug
 
         if newv < self.vel_range[0]:  # clip velocity if necessary to keep it within range
             newv = self.vel_range[0]
@@ -201,7 +205,7 @@ class Learning(object):
             reward + self.gamma * best_new_qval)  # Q-Learning update rule
 
 
-    # goal ?
+    # goal ? if OK return 1
     def reached_goal(self,pos):
         if pos > self.goal:
             return 1
@@ -209,14 +213,15 @@ class Learning(object):
             return 0
 
 
-    def record_evolution(self,run, trial, steps):
+    def record_evolution(self,run, trial, steps): # record the data
         self.evol_data[(run, trial)] = steps
 
 
     ############### FILE ###########################################
 
-    def write_evol_data(self,runs,max_trials):
+    def write_evol_data(self,runs,max_trials): # salve the data
         file = open("evolution.txt", "w")
+        mean_quad = 0
 
         for trial in range(0, max_trials):
             desvio_quad = 0
@@ -269,8 +274,8 @@ class Learning(object):
             self.resetQ()  # reset Q table
             carV = 0
             if self.heuristic:
-                self.resetH()
-                self.accelerate()
+                self.resetH() #reset H table
+                self.accelerate() # apply the H value in the H table
 
             for trial in range(0, max_trials):
                 iterations = 0
@@ -295,22 +300,22 @@ class Learning(object):
                     mygoal = self.reached_goal(self.simulatep)
                     if mygoal == 1:
                         self.record_evolution(run, trial, iterations)
-                        print trial, run, self.simulatev, self.simulatep, r, action
+                        print trial, run, self.simulatev, self.simulatep, r, action #debug
                         break
                     else:
-                        print trial, run, self.simulatev, self.simulatep, r, action
+                        print trial, run, self.simulatev, self.simulatep, r, action # debug
 
 
 
 #### EXECUTE PROGRAM ###############################
 def run():
-    runs = 2
-    max_trials = 100
+    runs = 10
+    max_trials = 2500
 
 
     agent = Learning()
-    agent.run_trials(2,100)
-    agent.write_evol_data(2,100)
+    agent.run_trials(runs,max_trials)
+    agent.write_evol_data(runs,max_trials)
     agent.generate_vvalue_plot()
 
     print " Finish ALL ! "
