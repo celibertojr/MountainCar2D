@@ -71,26 +71,32 @@ class Learning(object):
     def accelerate(self):
         posH = self.pos_range[0]
         velH = self.vel_range[0]
-        valuepos=int((self.pos_range[1] - self.pos_range[0]) / self.grid_res)
-        valuevel=int((self.vel_range[1] - self.vel_range[0]) / self.grid_res)
-        
+        vel = 0
+
         for l1 in range(0, self.grid_res):
             for l2 in range(0, self.grid_res):
-                for l3 in range(0, self.actions):
-                    self.H[(l1, l2, l3)] = 0
-        
-        #for p1 in range(posH, valuepos):
-        #    for v1 in range(velH, valuevel):
-        #        if (v1 < 0):
-        #            self.H[(p1, v1, 2)] = self.deltaH
-        #        else:
-        #            self.H[(p1, v1, 1)] = self.deltaH
+                vel = self.vel_range[0] + ((self.vel_range[1] - self.vel_range[0])*(l2 / self.grid_res))
+                if vel < 0 :
+                    self.H[(l1, l2, 2)] = self.deltaH
+                else :
+                    self.H[(l1, l2, 1)] = self.deltaH
+
+
 
     def resetH(self):
         for l1 in range(0, self.grid_res):
             for l2 in range(0, self.grid_res):
                 for l3 in range(0, self.actions):
                     self.H[(l1, l2, l3)] = 0
+
+    def hvalue(self,pos, vel, a):
+        pos_in_grid = int(((pos - self.pos_range[0]) / (self.pos_range[1] - self.pos_range[0])) * self.grid_res)
+        vel_in_grid = int(((vel - self.vel_range[0]) / (self.vel_range[1] - self.vel_range[0])) * self.grid_res)
+        # print pos_in_grid, vel_in_grid  #debug
+        qv = self.H[(pos_in_grid, vel_in_grid, a)]
+        return qv
+
+
 
     # given a position and velocity bin, pick the highest Q+H-value action with high probability
     def choose_action_h(self,pos, vel):
@@ -100,7 +106,7 @@ class Learning(object):
             return random.randint(0, 2)
         else:
             for a in range(0, self.actions):
-                if self.qvalue(pos, vel, a) + self.mi * self.H[(pos, vel, a)] > self.qvalue(pos, vel, bact) + self.mi * self.H[(pos, vel, a)]:
+                if self.qvalue(pos, vel, a) + self.mi * self.hvalue(pos, vel, a) > self.qvalue(pos, vel, bact) + self.mi * self.hvalue(pos, vel, a):
                         bact = a
             return bact
 
@@ -115,8 +121,8 @@ class Learning(object):
         #### QL  functions ############################
 
     def resetQ(self):
-        for l1 in range(0, self.grid_res + 2):
-            for l2 in range(0, self.grid_res + 2):
+        for l1 in range(0, self.grid_res):
+            for l2 in range(0, self.grid_res):
                 for l3 in range(0, self.actions):
                     self.QL[(l1, l2, l3)] = random.uniform(0, 1)
         print "Tabela Resetada"
