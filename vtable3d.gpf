@@ -3,7 +3,7 @@ set locale "pt_BR"
 set encoding iso_8859_1
 set xlabel "posicao"
 set ylabel "Velocidade"
-set zlabel "funcao valor" 
+set zlabel "funcao valor"
 set term postscript portrait
 set output "v-table.eps"
 set view 65, 110
