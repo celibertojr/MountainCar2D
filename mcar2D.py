@@ -184,14 +184,15 @@ class Learning(object):
         return bvalue
 
 
-    # update the Q-Learning algorithm
+    #Update the QLearning algorithm.
+    #Q(s,a)=Q(s,a)+alpha*(reward + gama(maxQ(s',a') - Q(s,a))
     def QLupdate(self,reward, act, oldp, oldv, newp, newv):
         pos_in_grid = int(((oldp - self.pos_range[0]) / (self.pos_range[1] - self.pos_range[0])) * self.grid_res)
         vel_in_grid = int(((oldv - self.vel_range[0]) / (self.vel_range[1] - self.vel_range[0])) * self.grid_res)
         # print pos_in_grid,vel_in_grid #debug
         best_new_qval = self.best_qvalue(newp, newv)
-        self.QL[(pos_in_grid, vel_in_grid, act)] = (1 - self.beta) * self.QL[(pos_in_grid, vel_in_grid, act)] + (self.beta) * (
-            reward + self.gamma * best_new_qval)  # Q-Learning update rule
+        self.QL[(pos_in_grid, vel_in_grid, act)] = self.QL[(pos_in_grid, vel_in_grid, act)] + (self.alpha) * (
+            reward + self.gamma * best_new_qval - (self.QL[(pos_in_grid, vel_in_grid, act)]))  # Q-Learning update rule
 
 
     # goal ? if OK return 1
@@ -300,8 +301,8 @@ class Learning(object):
 
 #### EXECUTE PROGRAM ###############################
 def run():
-    runs = 1#number of runs
-    max_trials = 100 #number of trials
+    runs = 30#number of runs
+    max_trials = 1000 #number of trials
 
     agent = Learning() #create agent
     agent.run_trials(runs,max_trials) #create the Learning
