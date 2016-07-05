@@ -23,7 +23,7 @@ class Learning(object):
         self.reward = -1
         self.exploration_rate = 0.1  # percentage of randomness
         self.beta = 0.1  # learning rate
-        self.heuristic = True #HQL - heuristic ?
+        self.heuristic = False #HQL - heuristic ?
 
         # training parameters
 
@@ -84,8 +84,8 @@ class Learning(object):
 
 
     def resetH(self):
-        for l1 in range(0, self.grid_res):
-            for l2 in range(0, self.grid_res):
+        for l1 in range(0, self.grid_res+1):
+            for l2 in range(0, self.grid_res+1):
                 for l3 in range(0, self.actions):
                     self.H[(l1, l2, l3)] = 0
 
@@ -121,8 +121,8 @@ class Learning(object):
         #### QL  functions ############################
 
     def resetQ(self):
-        for l1 in range(0, self.grid_res):
-            for l2 in range(0, self.grid_res):
+        for l1 in range(0, self.grid_res+1):
+            for l2 in range(0, self.grid_res+1):
                 for l3 in range(0, self.actions):
                     self.QL[(l1, l2, l3)] = random.uniform(0, 1)
         print "Tabela Resetada"
@@ -207,8 +207,9 @@ class Learning(object):
         vel_in_grid = int(((oldv - self.vel_range[0]) / (self.vel_range[1] - self.vel_range[0])) * self.grid_res)
         # print pos_in_grid,vel_in_grid #debug
         best_new_qval = self.best_qvalue(newp, newv)
-        self.QL[(pos_in_grid, vel_in_grid, act)] = (1 - self.beta) * self.QL[(pos_in_grid, vel_in_grid, act)] + (self.beta) * (
-            reward + self.gamma * best_new_qval)  # Q-Learning update rule
+            #self.QL[(pos_in_grid, vel_in_grid, act)] = (1 - self.beta) * self.QL[(pos_in_grid, vel_in_grid, act)] + (self.beta) * (
+            #reward + self.gamma * best_new_qval)  # Q-Learning update rule
+        self.QL[(pos_in_grid, vel_in_grid, act)] = self.QL[(pos_in_grid, vel_in_grid, act)] + (self.alpha) * (reward + self.gamma * best_new_qval-(self.QL[(pos_in_grid, vel_in_grid, act)]))  # Q-Learning update rule
 
 
     # goal ? if OK return 1
@@ -315,8 +316,8 @@ class Learning(object):
 
 #### EXECUTE PROGRAM ###############################
 def run():
-    runs = 10
-    max_trials = 2500
+    runs = 4
+    max_trials = 1000
 
 
     agent = Learning()
