@@ -9,15 +9,18 @@ import StringIO
 from math import *
 
 buf = StringIO.StringIO()
+
+
 class Learning(object):
     def __init__(self):
     # QL parameters
-        self.positivereward = 1 # the value of positive reward.
+        self.positivereward = 100 # the value of positive reward.
         self.negativereward = 0 #the value of negative reward.
         self.epsilon = 0.1
         self.alpha = 0.2
         self.gamma = 0.9
         self.actions = 3  # action 0,1,2,3
+        self.reward = -1
         self.exploration_rate = 0.1  # percentage of randomness
         self.beta = 0.1  # learning rate
         self.heuristic = True #HQL - heuristic ?
@@ -29,6 +32,7 @@ class Learning(object):
         # Mcar 2d = [pos,vel, action]
         # Mcar definitions
         self.gravity = -0.0025  # // acceleration due to gravity
+
         self.grid_res = 100
         # car position is limited to the following range
         self.pos_range = [-1.2, 0.60]
@@ -41,13 +45,13 @@ class Learning(object):
         self.simulatev = 0
         self.simulatep = 0
 
-        self.QL = {} # Q table
-        self.evol_data = {} # salve learning data
+        self.QL = {}
+        self.evol_data = {}
 
         # H parameters
-        self.H = {} # H table
+        self.H = {}
         self.mi = 1  # heuristically ponderation
-        self.deltaH = 100  # value of H
+        self.deltaH = 10  # value of H
 
         ##### Car  Basic Functions #####
         # generate random starting position
@@ -62,9 +66,8 @@ class Learning(object):
         return self.vel_range[1] - self.vel_range[0] * vrand + self.vel_range[0]  # scale velocity into legal range
 
             #
-    ############# HQL functions ############################
+            ############# HQL functions ############################
 
-    #heuristically accelerate function
     def accelerate(self):
         posH = self.pos_range[0]
         velH = self.vel_range[0]
@@ -72,17 +75,17 @@ class Learning(object):
 
         for l1 in range(0, self.grid_res):
             for l2 in range(0, self.grid_res):
-                vvalue = self.vel_range[0] + self.vel_step * l2
-                if vel < 0 : #if is less than zero
-                    self.H[(l1, l2, 2)] = self.deltaH #populate the table with H value
+                vel = self.vel_range[0] + ((self.vel_range[1] - self.vel_range[0])*(l2 / self.grid_res))
+                if vel < 0 :
+                    self.H[(l1, l2, 2)] = self.deltaH
                 else :
-                    self.H[(l1, l2, 1)] = self.deltaH  #populate the table with H value
+                    self.H[(l1, l2, 1)] = self.deltaH
 
 
-    #reset the H table with 0's
+
     def resetH(self):
-        for l1 in range(0, self.grid_res+1): #range 0 - 100
-            for l2 in range(0, self.grid_res+1): #range 0 - 100
+        for l1 in range(0, self.grid_res):
+            for l2 in range(0, self.grid_res):
                 for l3 in range(0, self.actions):
                     self.H[(l1, l2, l3)] = 0
 
@@ -103,17 +106,27 @@ class Learning(object):
             return random.randint(0, 2)
         else:
             for a in range(0, self.actions):
-                if self.qvalue(pos, vel, a) + self.mi * self.hvalue(pos, vel, a) > self.qvalue(pos, vel, bact) + self.mi * self.hvalue(pos, vel, bact):
+                if self.qvalue(pos, vel, a) + self.mi * self.hvalue(pos, vel, a) > self.qvalue(pos, vel, bact) + self.mi * self.hvalue(pos, vel, a):
                         bact = a
             return bact
 
-    #### QL  functions ############################
+
+
+
+
+
+
+
+
+        #### QL  functions ############################
+
     def resetQ(self):
-        for l1 in range(0, self.grid_res+1): #range 0 - 100
-            for l2 in range(0, self.grid_res+1): #range 0 - 100
+        for l1 in range(0, self.grid_res):
+            for l2 in range(0, self.grid_res):
                 for l3 in range(0, self.actions):
                     self.QL[(l1, l2, l3)] = random.uniform(0, 1)
         print "Tabela Resetada"
+
 
     # / see if car is up the hill
     def rewards(self,pcar):
@@ -121,6 +134,7 @@ class Learning(object):
         if pcar > self.goal:
             localreward = self.positivereward
         return localreward
+
 
     def update_position_velocity(self,a):
     # action 0,1,2,3 0 backward 1 forward 2 coast
@@ -133,8 +147,10 @@ class Learning(object):
             aval = a  # coast = 0, forward = +1, backward = -1;
 
         newv = oldv + (0.001 * aval) + (self.gravity * cos(3 * oldp))  # update equation for velocity
+
         newp = self.simulatep + newv  # update equation for position
         #print newp, newv #debug
+
         if newv < self.vel_range[0]:  # clip velocity if necessary to keep it within range
             newv = self.vel_range[0]
 
@@ -162,6 +178,7 @@ class Learning(object):
         qv = self.QL[(pos_in_grid, vel_in_grid, a)]
         return qv
 
+
     # given a position and velocity bin, pick the highest Q-value action with high probability
     def choose_action(self,pos, vel):
         bact = random.randint(0, 2)
@@ -184,15 +201,14 @@ class Learning(object):
         return bvalue
 
 
-    #Update the QLearning algorithm.
-    #Q(s,a)=Q(s,a)+alpha*(reward + gama(maxQ(s',a') - Q(s,a))
+    # update the Q-Learning algorithm
     def QLupdate(self,reward, act, oldp, oldv, newp, newv):
         pos_in_grid = int(((oldp - self.pos_range[0]) / (self.pos_range[1] - self.pos_range[0])) * self.grid_res)
         vel_in_grid = int(((oldv - self.vel_range[0]) / (self.vel_range[1] - self.vel_range[0])) * self.grid_res)
         # print pos_in_grid,vel_in_grid #debug
         best_new_qval = self.best_qvalue(newp, newv)
-        self.QL[(pos_in_grid, vel_in_grid, act)] = self.QL[(pos_in_grid, vel_in_grid, act)] + (self.alpha) * (
-            reward + self.gamma * best_new_qval - (self.QL[(pos_in_grid, vel_in_grid, act)]))  # Q-Learning update rule
+        self.QL[(pos_in_grid, vel_in_grid, act)] = (1 - self.beta) * self.QL[(pos_in_grid, vel_in_grid, act)] + (self.beta) * (
+            reward + self.gamma * best_new_qval)  # Q-Learning update rule
 
 
     # goal ? if OK return 1
@@ -250,9 +266,7 @@ class Learning(object):
                     value = value*(-1)
 
                 file.write(str(value))
-                file.write(' ')
-        
-            file.write("\t")
+                file.write("\t")
 
         file.close()
 
@@ -301,13 +315,14 @@ class Learning(object):
 
 #### EXECUTE PROGRAM ###############################
 def run():
-    runs = 30#number of runs
-    max_trials = 1000 #number of trials
+    runs = 10
+    max_trials = 2500
 
-    agent = Learning() #create agent
-    agent.run_trials(runs,max_trials) #create the Learning
-    agent.write_evol_data(runs,max_trials) #salve
-    agent.generate_vvalue_plot() #salve
+
+    agent = Learning()
+    agent.run_trials(runs,max_trials)
+    agent.write_evol_data(runs,max_trials)
+    agent.generate_vvalue_plot()
 
     print " Finish ALL ! "
 
