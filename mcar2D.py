@@ -24,7 +24,8 @@ class Learning(object):
         self.actions = 3  # action 0,1,2,3
         self.exploration_rate = 0.1  # percentage of randomness
         self.beta = 0.1  # learning rate
-        self.heuristic = False #HQL - heuristic ?
+
+        self.QLlearning = False
 
         # training parameters
 
@@ -49,10 +50,7 @@ class Learning(object):
         self.QL = {}
         self.evol_data = {}
 
-        # H parameters
-        self.H = {}
-        self.mi = 1  # heuristically ponderation
-        self.deltaH = 10  # value of H
+
 
         ##### Car  Basic Functions #####
 
@@ -65,55 +63,9 @@ class Learning(object):
         return self.vel_range[1] - self.vel_range[0] * vrand + self.vel_range[0]  # scale velocity into legal range
 
 
-    ############# HQL functions ############################
-
-    def accelerate(self):
-        posH = self.pos_range[0]
-        velH = self.vel_range[0]
-        vel = 0
-
-        for l1 in range(0, self.grid_res):
-            for l2 in range(0, self.grid_res):
-                vel = self.vel_range[0] + ((self.vel_range[1] - self.vel_range[0])*(l2 / self.grid_res))
-                if vel < 0 :
-                    self.H[(l1, l2, 2)] = self.deltaH
-                else :
-                    self.H[(l1, l2, 1)] = self.deltaH
 
 
-
-    def resetH(self):
-        for l1 in range(0, self.grid_res+1):
-            for l2 in range(0, self.grid_res+1):
-                for l3 in range(0, self.actions):
-                    self.H[(l1, l2, l3)] = 0
-
-    def hvalue(self,pos, vel, a):
-        pos_in_grid = int(((pos - self.pos_range[0]) / (self.pos_range[1] - self.pos_range[0])) * self.grid_res)
-        vel_in_grid = int(((vel - self.vel_range[0]) / (self.vel_range[1] - self.vel_range[0])) * self.grid_res)
-        # print pos_in_grid, vel_in_grid  #debug
-        qv = self.H[(pos_in_grid, vel_in_grid, a)]
-        return qv
-
-
-
-    # given a position and velocity bin, pick the highest Q+H-value action with high probability
-    def choose_action_h(self,pos, vel):
-        bact = random.randint(0, 2)
-        rvalue = random.uniform(0, 1)
-        if rvalue < self.exploration_rate:  # do a random action
-            return random.randint(0, 2)
-        else:
-            for a in range(0, self.actions):
-                if self.qvalue(pos, vel, a) + self.mi * self.hvalue(pos, vel, a) > self.qvalue(pos, vel, bact) + self.mi * self.hvalue(pos, vel, a):
-                        bact = a
-            return bact
-
-
-
-    ### end of HQL functions #######
-
-    ####### QL  functions ############################
+    ########### QL  and MountainCar functions ############################
 
     def resetQ(self):
         for l1 in range(0, self.grid_res+1):
@@ -197,12 +149,31 @@ class Learning(object):
 
 
     # update the Q-Learning algorithm
+    # Q(s,a)=Q(s,a)+alpha*(reward + gama*maxQ(s',a') - Q(s,a))
     def QLupdate(self,reward, act, oldp, oldv, newp, newv):
         pos_in_grid = int(((oldp - self.pos_range[0]) / (self.pos_range[1] - self.pos_range[0])) * self.grid_res)
         vel_in_grid = int(((oldv - self.vel_range[0]) / (self.vel_range[1] - self.vel_range[0])) * self.grid_res)
         # print pos_in_grid,vel_in_grid #debug
         best_new_qval = self.best_qvalue(newp, newv)
         self.QL[(pos_in_grid, vel_in_grid, act)] = self.QL[(pos_in_grid, vel_in_grid, act)] + (self.alpha) * (reward + self.gamma * best_new_qval-(self.QL[(pos_in_grid, vel_in_grid, act)]))  # Q-Learning update rule
+
+
+    # update the SARSA algorithm.
+    # Q(s,a)=Q(s,a)+alpha*(reward + gama*Q(s',a') - Q(s,a))
+    def SARSAupdate(self, reward, act, oldp, oldv, newp, newv):
+        pos_in_grid = int(((oldp - self.pos_range[0]) / (self.pos_range[1] - self.pos_range[0])) * self.grid_res)
+        vel_in_grid = int(((oldv - self.vel_range[0]) / (self.vel_range[1] - self.vel_range[0])) * self.grid_res)
+
+        Newpos_in_grid = int(((newp - self.pos_range[0]) / (self.pos_range[1] - self.pos_range[0])) * self.grid_res)
+        Newvel_in_grid = int(((newv - self.vel_range[0]) / (self.vel_range[1] - self.vel_range[0])) * self.grid_res)
+
+        New_ac=self.choose_action(newp, newv)
+        New_qval=self.qvalue(newp, newv, New_ac)
+
+        self.QL[(pos_in_grid, vel_in_grid, act)] = self.QL[(pos_in_grid, vel_in_grid, act)] + (self.alpha) * (
+        reward + self.gamma * New_qval - (self.QL[(pos_in_grid, vel_in_grid, act)]))  # SARSA update rule
+
+
 
 
     # goal ? if OK return 1
@@ -273,9 +244,7 @@ class Learning(object):
 
             self.resetQ()  # reset Q table
             carV = 0
-            if self.heuristic:
-                self.resetH() #reset H table
-                self.accelerate() # apply the H value in the H table
+
 
             for trial in range(0, max_trials):
                 iterations = 0
@@ -288,14 +257,12 @@ class Learning(object):
                     OLDsimulatep = self.simulatep
                     OLDsimulatev = self.simulatev
 
-                    if self.heuristic: # H value to accelerate
-                        action = self.choose_action_h(self.simulatep, self.simulatev)
-                    else:
-                        action = self.choose_action(self.simulatep, self.simulatev)
+                    action = self.choose_action(self.simulatep, self.simulatev) #choice action
 
                     self.update_position_velocity(action)  # move the car
-                    r = self.rewards(self.simulatep)
-                    self.QLupdate(r, action, OLDsimulatep, OLDsimulatev, self.simulatep, self.simulatev)
+                    r = self.rewards(self.simulatep) #return the reward
+                    #self.QLupdate(r, action, OLDsimulatep, OLDsimulatev, self.simulatep, self.simulatev)
+                    self.SARSAupdate(r, action, OLDsimulatep, OLDsimulatev, self.simulatep, self.simulatev)
                     iterations += 1
                     mygoal = self.reached_goal(self.simulatep)
                     if mygoal == 1:
