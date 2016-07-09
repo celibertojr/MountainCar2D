@@ -4,9 +4,11 @@
 # based in the work of Sridhar Mahadevan in 1996
 
 
-import random
 import StringIO
+import random
 from math import *
+import time
+
 
 buf = StringIO.StringIO()
 
@@ -14,13 +16,12 @@ buf = StringIO.StringIO()
 class Learning(object):
     def __init__(self):
     # QL parameters
-        self.positivereward = 100 # the value of positive reward.
-        self.negativereward = 0 #the value of negative reward.
+        self.positivereward = 1 # the value of positive reward.
+        self.negativereward = -1 #the value of negative reward.
         self.epsilon = 0.1
         self.alpha = 0.2
         self.gamma = 0.9
         self.actions = 3  # action 0,1,2,3
-        self.reward = -1
         self.exploration_rate = 0.1  # percentage of randomness
         self.beta = 0.1  # learning rate
         self.heuristic = False #HQL - heuristic ?
@@ -38,12 +39,12 @@ class Learning(object):
         self.pos_range = [-1.2, 0.60]
         # car velocity is limited to the following range
         self.vel_range = [-0.07, 0.07]
-        self.goal = 0.5  # above this value means goal reached
+        self.goal = 0.6  # above this value means goal reached
         self.pos_step = (self.pos_range[1] - self.pos_range[0]) / self.grid_res
         self.vel_step = (self.vel_range[1] - self.vel_range[0]) / self.grid_res
 
-        self.simulatev = 0
-        self.simulatep = 0
+        self.simulatev = 0 #initial value
+        self.simulatep = 0 #initial value
 
         self.QL = {}
         self.evol_data = {}
@@ -54,19 +55,17 @@ class Learning(object):
         self.deltaH = 10  # value of H
 
         ##### Car  Basic Functions #####
-        # generate random starting position
-    def random_pos(self):
+
+    def random_pos(self): #random position
         prand = random.uniform(0, 2)
         return self.pos_range[1] - self.pos_range[0] * prand + self.pos_range[0]  # scale position into legal range
 
-        # generate random starting position
-
-    def random_vel(self):
+    def random_vel(self): #random velocity
         vrand = random.uniform(0, 2)
         return self.vel_range[1] - self.vel_range[0] * vrand + self.vel_range[0]  # scale velocity into legal range
 
-            #
-            ############# HQL functions ############################
+
+    ############# HQL functions ############################
 
     def accelerate(self):
         posH = self.pos_range[0]
@@ -112,13 +111,9 @@ class Learning(object):
 
 
 
+    ### end of HQL functions #######
 
-
-
-
-
-
-        #### QL  functions ############################
+    ####### QL  functions ############################
 
     def resetQ(self):
         for l1 in range(0, self.grid_res+1):
@@ -131,7 +126,7 @@ class Learning(object):
     # / see if car is up the hill
     def rewards(self,pcar):
         localreward = self.negativereward
-        if pcar > self.goal:
+        if pcar >= self.goal:
             localreward = self.positivereward
         return localreward
 
@@ -207,14 +202,12 @@ class Learning(object):
         vel_in_grid = int(((oldv - self.vel_range[0]) / (self.vel_range[1] - self.vel_range[0])) * self.grid_res)
         # print pos_in_grid,vel_in_grid #debug
         best_new_qval = self.best_qvalue(newp, newv)
-            #self.QL[(pos_in_grid, vel_in_grid, act)] = (1 - self.beta) * self.QL[(pos_in_grid, vel_in_grid, act)] + (self.beta) * (
-            #reward + self.gamma * best_new_qval)  # Q-Learning update rule
         self.QL[(pos_in_grid, vel_in_grid, act)] = self.QL[(pos_in_grid, vel_in_grid, act)] + (self.alpha) * (reward + self.gamma * best_new_qval-(self.QL[(pos_in_grid, vel_in_grid, act)]))  # Q-Learning update rule
 
 
     # goal ? if OK return 1
     def reached_goal(self,pos):
-        if pos > self.goal:
+        if pos >= self.goal:
             return 1
         else:
             return 0
@@ -267,7 +260,8 @@ class Learning(object):
                     value = value*(-1)
 
                 file.write(str(value))
-                file.write("\t")
+                file.write('\t')
+            file.write('\n')
 
         file.close()
 
@@ -276,7 +270,6 @@ class Learning(object):
 
     def run_trials(self,runs,max_trials):
         for run in range(0, runs):
-            # contRUN +=1
 
             self.resetQ()  # reset Q table
             carV = 0
@@ -316,16 +309,21 @@ class Learning(object):
 
 #### EXECUTE PROGRAM ###############################
 def run():
-    runs = 4
-    max_trials = 1000
+    runs = 30
+    max_trials = 2000
 
+    start = time.time() #start count time
 
     agent = Learning()
     agent.run_trials(runs,max_trials)
+    done = time.time() #finish count time
     agent.write_evol_data(runs,max_trials)
     agent.generate_vvalue_plot()
 
-    print " Finish ALL ! "
+    elapsed = done - start
+    print(elapsed)
+
+    print " Finish ! "
 
 
 
