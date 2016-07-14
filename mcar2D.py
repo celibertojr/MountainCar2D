@@ -21,7 +21,7 @@ class Learning(object):
         self.epsilon = 0.1
         self.alpha = 0.2
         self.gamma = 0.9
-        self.actions = 3  # action 0,1,2,3
+        self.actions = 3  # action 0,1,2
         self.exploration_rate = 0.1  # percentage of randomness
         self.beta = 0.1  # learning rate
 
