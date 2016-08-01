@@ -18,12 +18,10 @@ class Learning(object):
     # QL parameters
         self.positivereward = 1 # the value of positive reward.
         self.negativereward = -1 #the value of negative reward.
-        self.epsilon = 0.1
         self.alpha = 0.2
         self.gamma = 0.9
         self.actions = 3  # action 0,1,2
         self.exploration_rate = 0.1  # percentage of randomness
-        self.beta = 0.1  # learning rate
 
         self.QLlearning = False
 
@@ -72,7 +70,8 @@ class Learning(object):
             for l2 in range(0, self.grid_res+1):
                 for l3 in range(0, self.actions):
                     self.QL[(l1, l2, l3)] = random.uniform(0, 1)
-        print "Tabela Resetada"
+                    #self.QL[(l1, l2, l3)] = 0
+        print "Reseted"
 
 
     # / see if car is up the hill
@@ -176,6 +175,9 @@ class Learning(object):
 
 
 
+
+
+
     # goal ? if OK return 1
     def reached_goal(self,pos):
         if pos >= self.goal:
@@ -261,8 +263,8 @@ class Learning(object):
 
                     self.update_position_velocity(action)  # move the car
                     r = self.rewards(self.simulatep) #return the reward
-                    #self.QLupdate(r, action, OLDsimulatep, OLDsimulatev, self.simulatep, self.simulatev)
-                    self.SARSAupdate(r, action, OLDsimulatep, OLDsimulatev, self.simulatep, self.simulatev)
+                    self.QLupdate(r, action, OLDsimulatep, OLDsimulatev, self.simulatep, self.simulatev)
+                    #self.SARSAupdate(r, action, OLDsimulatep, OLDsimulatev, self.simulatep, self.simulatev)
                     iterations += 1
                     mygoal = self.reached_goal(self.simulatep)
                     if mygoal == 1:
